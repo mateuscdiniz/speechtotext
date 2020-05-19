@@ -33,9 +33,7 @@ func returnSingleArticle(w http.ResponseWriter, r *http.Request) {
 func createArticle(w http.ResponseWriter, r *http.Request) {
 
 	reqBody, _ := ioutil.ReadAll(r.Body)
-
 	var article Article
-
 	json.Unmarshal(reqBody, &article)
 
 	//atualizando o array com o novo
@@ -46,19 +44,12 @@ func createArticle(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteArticle(w http.ResponseWriter, r *http.Request) {
-	// once again, we will need to parse the path parameters
+
 	vars := mux.Vars(r)
-	// we will need to extract the `id` of the article we
-	// wish to delete
 	id := vars["id"]
 
-	// we then need to loop through all our articles
 	for index, article := range Articles {
-		// if our id path parameter matches one of our
-		// articles
 		if article.Id == id {
-			// updates our Articles array to remove the
-			// article
 			Articles = append(Articles[:index], Articles[index+1:]...)
 		}
 	}
