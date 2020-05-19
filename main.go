@@ -30,7 +30,7 @@ func returnSingleArticle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func createNewArticle(w http.ResponseWriter, r *http.Request) {
+func createArticle(w http.ResponseWriter, r *http.Request) {
 
 	reqBody, _ := ioutil.ReadAll(r.Body)
 
@@ -84,7 +84,7 @@ func handleRequests() {
 	router := mux.NewRouter().StrictSlash(true)
 
 	router.HandleFunc("/", homePage)
-	router.HandleFunc("/article", createNewArticle).Methods("POST")
+	router.HandleFunc("/article", createArticle).Methods("POST")
 	router.HandleFunc("/articles", allArticles)
 	router.HandleFunc("/article/{id}", returnSingleArticle)
 	router.HandleFunc("/article/{id}", deleteArticle).Methods("DELETE")
