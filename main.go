@@ -1,95 +1,93 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 
-	"github.com/gorilla/mux"
+	_ "github.com/go-sql-driver/mysql"
 )
 
-type Article struct {
-	Id      string `json:"Id"`
-	Title   string `json:"Title"`
-	Desc    string `json:"desc"`
-	Content string `json:"content"`
+// Usuario :)
+type User struct {
+	ID   int    `json:"id"`
+	Name string `json:"nome"`
 }
 
-var Articles []Article
+// UsuarioHandler analisa o request e delega para função adequada
+func UserHandler(w http.ResponseWriter, r *http.Request) {
+	sid := strings.TrimPrefix(r.URL.Path, "/users/")
+	id, _ := strconv.Atoi(sid)
 
-func returnSingleArticle(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	key := vars["id"]
+	switch {
+	case r.Method == "GET" && id > 0:
+		userByID(w, r, id)
+	case r.Method == "GET":
+		allUsers(w, r)
+	case r.Method == "POST":
+		createUser(w, r)
+	case r.Method == "UPDATE" && id > 0:
+		updateUser(w, r, id)
+	case r.Method == "DELETE" && id > 0:
+		deleteUser(w, r, id)
 
-	for _, article := range Articles {
-		if article.Id == key {
-			json.NewEncoder(w).Encode(article)
-		}
+	default:
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprintf(w, "404")
 	}
 }
 
-func createArticle(w http.ResponseWriter, r *http.Request) {
+func userByID(w http.ResponseWriter, r *http.Request, id int) {
+	db, err := sql.Open("mysql", "root:@/stt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
 
-	reqBody, _ := ioutil.ReadAll(r.Body)
-	var article Article
-	json.Unmarshal(reqBody, &article)
+	var u User
+	db.QueryRow("select id, name from user where id = ?", id).Scan(&u.ID, &u.Name)
 
-	//atualizando o array com o novo
-	//artigo
-	Articles = append(Articles, article)
+	json, _ := json.Marshal(u)
 
-	json.NewEncoder(w).Encode(article)
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, string(json))
 }
 
-func deleteArticle(w http.ResponseWriter, r *http.Request) {
+func allUsers(w http.ResponseWriter, r *http.Request) {
+	db, err := sql.Open("mysql", "root:@/stt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
 
-	vars := mux.Vars(r)
-	id := vars["id"]
+	rows, _ := db.Query("select id, name from user")
+	defer rows.Close()
 
-	for index, article := range Articles {
-		if article.Id == id {
-			Articles = append(Articles[:index], Articles[index+1:]...)
-		}
+	var users []User
+	for rows.Next() {
+		var user User
+		rows.Scan(&user.ID, &user.Name)
+		users = append(users, user)
 	}
 
+	json, _ := json.Marshal(users)
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, string(json))
 }
 
-func allArticles(w http.ResponseWriter, r *http.Request) {
-
-	fmt.Println("Endpoint Hit: All articles Endpoint")
-
-	//codifica o array de artigos em string json
-	json.NewEncoder(w).Encode(Articles)
-}
-
-func homePage(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Homepage endpoint Hit")
-}
-
-//função que mapeia as chamadas
-func handleRequests() {
-
-	//criando um novo roteador
-	router := mux.NewRouter().StrictSlash(true)
-
-	router.HandleFunc("/", homePage)
-	router.HandleFunc("/article", createArticle).Methods("POST")
-	router.HandleFunc("/articles", allArticles)
-	router.HandleFunc("/article/{id}", returnSingleArticle)
-	router.HandleFunc("/article/{id}", deleteArticle).Methods("DELETE")
-
-	log.Fatal(http.ListenAndServe(":8080", router))
+func createUser(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func main() {
+func updateUser(w http.ResponseWriter, r *http.Request, id int) {
 
-	Articles = []Article{
-		Article{Id: "1", Title: "Hello", Desc: "Article Description", Content: "Article Content"},
-		Article{Id: "2", Title: "Hello 2", Desc: "Article Description", Content: "Article Content"},
-	}
+}
 
-	handleRequests()
+func deleteUser(w http.ResponseWriter, r *http.Request, id int) {
+
 }
